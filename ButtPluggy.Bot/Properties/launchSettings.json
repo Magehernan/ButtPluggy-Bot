@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "ButtPluggy.Bot": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    }
+  }
+}
