@@ -64,6 +64,9 @@ public class BlockchainListener : BackgroundService {
 		await subscription.SubscribeAsync(filterTransfers);
 
 		while (!stoppingToken.IsCancellationRequested) {
+			if (client.WebSocketState != System.Net.WebSockets.WebSocketState.Open) {
+				logger.LogInformation("Client websocket state {state}", client.WebSocketState);
+			}
 			if (subscription.SubscriptionState == SubscriptionState.Unsubscribing
 				|| client.WebSocketState == System.Net.WebSockets.WebSocketState.Aborted
 				|| client.WebSocketState == System.Net.WebSockets.WebSocketState.Closed) {
@@ -78,6 +81,10 @@ public class BlockchainListener : BackgroundService {
 	private void Subscription_SubscriptionDataResponse(object? sender, StreamingEventArgs<FilterLog> log) {
 		try {
 			logger.LogInformation("Event Receive {response} {exception}", log.Response, log.Exception);
+			if (log.Response is null) {
+				return;
+			}
+
 			EventLog<TransferEventDTO> eventLog = log.Response.DecodeEvent<TransferEventDTO>();
 			ProcessTransferEvent(eventLog);
 		} catch (Exception e) {
