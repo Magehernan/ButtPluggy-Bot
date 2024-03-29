@@ -66,11 +66,11 @@ public class BotRunner : BackgroundService {
 			""";
 
 		foreach (ulong channelId in discordConfiguration.Value.Channels) {
-			if (await client.GetChannelAsync(channelId) is not IMessageChannel channelMessage) {
-				continue;
-			}
-
 			try {
+				if (await client.GetChannelAsync(channelId) is not IMessageChannel channelMessage) {
+					continue;
+				}
+
 				logger.LogInformation("Sending message to {channelId}\n{messageText}", channelId, messageText);
 				await channelMessage.SendMessageAsync(messageText);
 			} catch (Exception e) {

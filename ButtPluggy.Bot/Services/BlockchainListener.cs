@@ -37,15 +37,15 @@ public class BlockchainListener : BackgroundService {
 	}
 
 	protected override async Task ExecuteAsync(CancellationToken stoppingToken) {
-		logger.LogInformation("-----> BlockchainListener Start");
 		while (!stoppingToken.IsCancellationRequested) {
+			logger.LogInformation("-----> BlockchainListener Start");
 			try {
 				await SubscribeToEventAsync(stoppingToken);
 			} catch {
-				await Task.Delay(30000);
+				await Task.Delay(5000);
 			}
+			logger.LogInformation("<----- BlockchainListener Stop");
 		}
-		logger.LogInformation("<----- BlockchainListener Stop");
 	}
 
 	private async Task SubscribeToEventAsync(CancellationToken stoppingToken) {
@@ -54,7 +54,7 @@ public class BlockchainListener : BackgroundService {
 			blockchainConfiguration.Value.ButtPluggyAddress,
 			fromBlock: new(currentBlock)
 		);
-		StreamingWebSocketClient client = new(blockchainConfiguration.Value.WebSocket);
+		using StreamingWebSocketClient client = new(blockchainConfiguration.Value.WebSocket);
 		EthLogsSubscription subscription = new(client);
 
 		subscription.SubscriptionDataResponse += Subscription_SubscriptionDataResponse;
@@ -64,7 +64,10 @@ public class BlockchainListener : BackgroundService {
 		await subscription.SubscribeAsync(filterTransfers);
 
 		while (!stoppingToken.IsCancellationRequested) {
-			if (subscription.SubscriptionState == SubscriptionState.Unsubscribing) {
+			if (subscription.SubscriptionState == SubscriptionState.Unsubscribing
+				|| client.WebSocketState == System.Net.WebSockets.WebSocketState.Aborted
+				|| client.WebSocketState == System.Net.WebSockets.WebSocketState.Closed) {
+
 				subscription.SubscriptionDataResponse -= Subscription_SubscriptionDataResponse;
 				return;
 			}
