@@ -7,6 +7,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ButtPluggy.Bot", "ButtPlugg
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{BB0DA812-61E3-45A2-8FC5-5094E412DC20}"
 	ProjectSection(SolutionItems) = preProject
+		kubernetes\buttpluggy-bot-deployment.yaml = kubernetes\buttpluggy-bot-deployment.yaml
 		.github\workflows\docker-build-push.yaml = .github\workflows\docker-build-push.yaml
 	EndProjectSection
 EndProject

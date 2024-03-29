@@ -52,10 +52,17 @@ public class BotRunner : BackgroundService {
 	}
 
 	private async Task SendMessageAsync(string to, BigInteger tokenId) {
-		using HttpClient httpClient = httpClientFactory.CreateClient();
-		ButtPluggyInfo info = await httpClient.GetFromJsonAsync<ButtPluggyInfo>($"https://buttpluggy.com/data/{tokenId:0000}.json");
+		string? name = null;
+		string urlInfo = $"https://buttpluggy.com/data/{tokenId:0000}.json";
+		try {
+			using HttpClient httpClient = httpClientFactory.CreateClient();
+			ButtPluggyInfo info = await httpClient.GetFromJsonAsync<ButtPluggyInfo>(urlInfo);
+		} catch (Exception e) {
+			logger.LogError(e, "Get info from {urlInfo}", urlInfo);
+		}
+		name ??= tokenId.ToString();
 		string messageText = $"""
-			A wild buttpluggy [{info.Name}](https://buttpluggy.com/buttpluggy/{tokenId}) appeared, {to} capture it
+			A wild buttpluggy [{name}](https://buttpluggy.com/buttpluggy/{tokenId}) appeared, {to} capture it
 			""";
 
 		foreach (ulong channelId in discordConfiguration.Value.Channels) {
@@ -63,7 +70,12 @@ public class BotRunner : BackgroundService {
 				continue;
 			}
 
-			await channelMessage.SendMessageAsync(messageText);
+			try {
+				logger.LogInformation("Sending message to {channelId}\n{messageText}", channelId, messageText);
+				await channelMessage.SendMessageAsync(messageText);
+			} catch (Exception e) {
+				logger.LogError(e, "Sending message to channel {channel}", channelId);
+			}
 		}
 	}
 

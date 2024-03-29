@@ -65,6 +65,7 @@ public class BlockchainListener : BackgroundService {
 
 		while (!stoppingToken.IsCancellationRequested) {
 			if (subscription.SubscriptionState == SubscriptionState.Unsubscribing) {
+				subscription.SubscriptionDataResponse -= Subscription_SubscriptionDataResponse;
 				return;
 			}
 			await Task.Delay(5000);
@@ -73,6 +74,7 @@ public class BlockchainListener : BackgroundService {
 
 	private void Subscription_SubscriptionDataResponse(object? sender, StreamingEventArgs<FilterLog> log) {
 		try {
+			logger.LogInformation("Event Receive {response} {exception}", log.Response, log.Exception);
 			EventLog<TransferEventDTO> eventLog = log.Response.DecodeEvent<TransferEventDTO>();
 			ProcessTransferEvent(eventLog);
 		} catch (Exception e) {
