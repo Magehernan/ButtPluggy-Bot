@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: buttpluggy-bot
+  labels:
+    app: buttpluggy-bot
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: buttpluggy-bot
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: buttpluggy-bot
+    spec:
+      containers:
+        - name: buttpluggy-bot
+          image: magehernan/buttpluggy-bot:v1
+          env:
+            - name: DiscordConfiguration__Token
+              value: your token
+            - name: DiscordConfiguration__Channels__0
+              value: '1162958621567627314'
+            - name: BlockchainConfiguration__Rpc
+              value: https://ethereum-sepolia-rpc.publicnode.com
+            - name: BlockchainConfiguration__WebSocket
+              value: wss://ethereum-sepolia-rpc.publicnode.com
+            - name: Logging__Console__FormatterName
+      restartPolicy: Always
