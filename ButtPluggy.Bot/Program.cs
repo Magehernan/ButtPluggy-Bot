@@ -17,6 +17,7 @@ HostApplicationBuilder builder = Host.CreateApplicationBuilder(new HostApplicati
 builder.Services.Configure<DiscordConfiguration>(builder.Configuration.GetRequiredSection(nameof(DiscordConfiguration)));
 builder.Services.Configure<BlockchainConfiguration>(builder.Configuration.GetRequiredSection(nameof(BlockchainConfiguration)));
 builder.Services.AddSingleton(Channel.CreateUnbounded<(string, BigInteger)>(new() { SingleReader = true }));
+builder.Services.AddHttpClient();
 builder.Services.AddHostedService<BotRunner>();
 builder.Services.AddHostedService<BlockchainListener>();
 

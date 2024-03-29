@@ -27,7 +27,13 @@ public class BlockchainListener : BackgroundService {
 		channelWriter = channel.Writer;
 		this.blockchainConfiguration = blockchainConfiguration;
 		web3 = new(blockchainConfiguration.Value.Rpc);
-		ensService = web3.Eth.GetEnsService();
+		Web3 web3Ens;
+		if (blockchainConfiguration.Value.Rpc.Equals(blockchainConfiguration.Value.EnsRpc)) {
+			web3Ens = web3;
+		} else {
+			web3Ens = new(blockchainConfiguration.Value.EnsRpc);
+		}
+		ensService = web3Ens.Eth.GetEnsService();
 	}
 
 	protected override async Task ExecuteAsync(CancellationToken stoppingToken) {
