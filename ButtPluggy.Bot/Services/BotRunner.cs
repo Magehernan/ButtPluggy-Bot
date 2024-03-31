@@ -57,6 +57,7 @@ public class BotRunner : BackgroundService {
 		try {
 			using HttpClient httpClient = httpClientFactory.CreateClient();
 			ButtPluggyInfo info = await httpClient.GetFromJsonAsync<ButtPluggyInfo>(urlInfo);
+			name = info.Name;
 		} catch (Exception e) {
 			logger.LogError(e, "Get info from {urlInfo}", urlInfo);
 		}
