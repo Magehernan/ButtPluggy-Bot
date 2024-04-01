@@ -62,9 +62,8 @@ public class BotRunner : BackgroundService {
 			logger.LogError(e, "Get info from {urlInfo}", urlInfo);
 		}
 		name ??= tokenId.ToString();
-		string messageText = $"""
-			A wild buttpluggy [{name}](https://buttpluggy.com/buttpluggy/{tokenId}) appeared, {to} capture it
-			""";
+		string messageText = string.Format(discordConfiguration.Value.MessageFormat, name, tokenId, to);
+		logger.LogInformation("Sending message to {messageText}", messageText);
 
 		foreach (ulong channelId in discordConfiguration.Value.Channels) {
 			try {
@@ -72,7 +71,7 @@ public class BotRunner : BackgroundService {
 					continue;
 				}
 
-				logger.LogInformation("Sending message to {channelId}\n{messageText}", channelId, messageText);
+				logger.LogInformation("Sending message to {channelId}", channelId);
 				await channelMessage.SendMessageAsync(messageText);
 			} catch (Exception e) {
 				logger.LogError(e, "Sending message to channel {channel}", channelId);

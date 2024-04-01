@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Nethereum.ABI.Model;
 using Nethereum.Contracts;
 using Nethereum.Contracts.Standards.ENS;
 using Nethereum.Contracts.Standards.ERC721.ContractDefinition;
@@ -22,6 +23,8 @@ public class BlockchainListener : BackgroundService {
 	private readonly ENSService ensService;
 	private readonly ChannelWriter<(string to, BigInteger tokenId)> channelWriter;
 	private readonly Web3 web3;
+	private readonly EventABI transferEventABI;
+
 	public BlockchainListener(ILogger<BlockchainListener> logger, Channel<(string, BigInteger)> channel, IOptions<BlockchainConfiguration> blockchainConfiguration) {
 		this.logger = logger;
 		channelWriter = channel.Writer;
@@ -34,6 +37,7 @@ public class BlockchainListener : BackgroundService {
 			web3Ens = new(blockchainConfiguration.Value.EnsRpc);
 		}
 		ensService = web3Ens.Eth.GetEnsService();
+		transferEventABI = Event<TransferEventDTO>.GetEventABI();
 	}
 
 	protected override async Task ExecuteAsync(CancellationToken stoppingToken) {
@@ -42,7 +46,7 @@ public class BlockchainListener : BackgroundService {
 			try {
 				await SubscribeToEventAsync(stoppingToken);
 			} catch {
-				await Task.Delay(5000);
+				await Task.Delay(2000);
 			}
 			logger.LogInformation("<----- BlockchainListener Stop");
 		}
@@ -50,7 +54,7 @@ public class BlockchainListener : BackgroundService {
 
 	private async Task SubscribeToEventAsync(CancellationToken stoppingToken) {
 		HexBigInteger currentBlock = await web3.Eth.Blocks.GetBlockNumber.SendRequestAsync();
-		NewFilterInput filterTransfers = Event<TransferEventDTO>.GetEventABI().CreateFilterInput(
+		NewFilterInput filterTransfers = transferEventABI.CreateFilterInput(
 			blockchainConfiguration.Value.ButtPluggyAddress,
 			fromBlock: new(currentBlock)
 		);
@@ -72,7 +76,7 @@ public class BlockchainListener : BackgroundService {
 				subscription.SubscriptionDataResponse -= Subscription_SubscriptionDataResponse;
 				return;
 			}
-			await Task.Delay(5000);
+			await Task.Delay(1000);
 		}
 	}
 
