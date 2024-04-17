@@ -1,7 +1,6 @@
 ﻿using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Nethereum.ABI.Model;
 using Nethereum.BlockchainProcessing;
 using Nethereum.BlockchainProcessing.Processor;
 using Nethereum.BlockchainProcessing.ProgressRepositories;
@@ -22,7 +21,6 @@ public class BlockchainListener : BackgroundService {
 	private readonly ENSService ensService;
 	private readonly ChannelWriter<(string to, BigInteger tokenId)> channelWriter;
 	private readonly Web3 web3;
-	private readonly EventABI transferEventABI;
 
 	public BlockchainListener(ILogger<BlockchainListener> logger, Channel<(string, BigInteger)> channel, IOptions<BlockchainConfiguration> blockchainConfiguration) {
 		this.logger = logger;
@@ -37,7 +35,6 @@ public class BlockchainListener : BackgroundService {
 			web3Ens = new(blockchainConfiguration.Value.EnsRpc);
 		}
 		ensService = web3Ens.Eth.GetEnsService();
-		transferEventABI = Event<TransferEventDTO>.GetEventABI();
 	}
 
 	protected override async Task ExecuteAsync(CancellationToken stoppingToken) {

@@ -37,7 +37,7 @@ public class BotRunner : BackgroundService {
 		await client.LoginAsync(TokenType.Bot, discordConfiguration.Value.Token);
 		await client.StartAsync();
 		client.Ready += Client_Ready;
-		await Task.Delay(-1);
+		await Task.Delay(-1, stoppingToken);
 		logger.LogInformation("<----  Bot Stop");
 	}
 
