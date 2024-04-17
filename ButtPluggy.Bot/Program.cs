@@ -1,5 +1,4 @@
 ﻿using ButtPluggy.Bot.Services;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System.Numerics;
@@ -14,8 +13,8 @@ HostApplicationBuilder builder = Host.CreateApplicationBuilder(new HostApplicati
 	EnvironmentName = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production",
 	ContentRootPath = Directory.GetCurrentDirectory(),
 });
-builder.Services.Configure<DiscordConfiguration>(builder.Configuration.GetRequiredSection(nameof(DiscordConfiguration)));
-builder.Services.Configure<BlockchainConfiguration>(builder.Configuration.GetRequiredSection(nameof(BlockchainConfiguration)));
+builder.Services.AddOptions<DiscordConfiguration>().BindConfiguration(nameof(DiscordConfiguration));
+builder.Services.AddOptions<BlockchainConfiguration>().BindConfiguration(nameof(BlockchainConfiguration));
 builder.Services.AddSingleton(Channel.CreateUnbounded<(string, BigInteger)>(new() { SingleReader = true }));
 builder.Services.AddHttpClient();
 builder.Services.AddHostedService<BotRunner>();

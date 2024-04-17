@@ -2,14 +2,13 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Nethereum.ABI.Model;
+using Nethereum.BlockchainProcessing;
+using Nethereum.BlockchainProcessing.Processor;
+using Nethereum.BlockchainProcessing.ProgressRepositories;
 using Nethereum.Contracts;
 using Nethereum.Contracts.Standards.ENS;
 using Nethereum.Contracts.Standards.ERC721.ContractDefinition;
 using Nethereum.Hex.HexTypes;
-using Nethereum.JsonRpc.Client.Streaming;
-using Nethereum.JsonRpc.WebSocketStreamingClient;
-using Nethereum.RPC.Eth.DTOs;
-using Nethereum.RPC.Eth.Subscriptions;
 using Nethereum.Util;
 using Nethereum.Web3;
 using System.Numerics;
@@ -29,6 +28,7 @@ public class BlockchainListener : BackgroundService {
 		this.logger = logger;
 		channelWriter = channel.Writer;
 		this.blockchainConfiguration = blockchainConfiguration;
+
 		web3 = new(blockchainConfiguration.Value.Rpc);
 		Web3 web3Ens;
 		if (blockchainConfiguration.Value.Rpc.Equals(blockchainConfiguration.Value.EnsRpc)) {
@@ -51,50 +51,37 @@ public class BlockchainListener : BackgroundService {
 			logger.LogInformation("<----- BlockchainListener Stop");
 		}
 	}
-
 	private async Task SubscribeToEventAsync(CancellationToken stoppingToken) {
 		HexBigInteger currentBlock = await web3.Eth.Blocks.GetBlockNumber.SendRequestAsync();
-		NewFilterInput filterTransfers = transferEventABI.CreateFilterInput(
-			blockchainConfiguration.Value.ButtPluggyAddress,
-			fromBlock: new(currentBlock)
+		ulong startBlock = (ulong)currentBlock.Value - 100;
+
+		IBlockProgressRepository blockProgressRepository = new InMemoryBlockchainProgressRepository();
+
+		BlockchainProcessor blockchainProcessor = web3.Processing.Logs.CreateProcessor(
+			new EventLogProcessorHandler<TransferEventDTO>(ProcessTransferEvent),
+			1,
+			new() {
+				Address = [blockchainConfiguration.Value.ButtPluggyAddress],
+			},
+			blockProgressRepository
 		);
-		using StreamingWebSocketClient client = new(blockchainConfiguration.Value.WebSocket);
-		EthLogsSubscription subscription = new(client);
 
-		subscription.SubscriptionDataResponse += Subscription_SubscriptionDataResponse;
-
-		await client.StartAsync();
-
-		await subscription.SubscribeAsync(filterTransfers);
-
+		logger.LogInformation("[Execute] Log Processor from: {address}", blockchainConfiguration.Value.ButtPluggyAddress);
 		while (!stoppingToken.IsCancellationRequested) {
-			if (subscription.SubscriptionState == SubscriptionState.Unsubscribing
-				|| client.WebSocketState == System.Net.WebSockets.WebSocketState.Aborted
-				|| client.WebSocketState == System.Net.WebSockets.WebSocketState.Closed
-				|| client.WebSocketState == System.Net.WebSockets.WebSocketState.None) {
-
-				subscription.SubscriptionDataResponse -= Subscription_SubscriptionDataResponse;
-				return;
+			try {
+				await blockchainProcessor.ExecuteAsync(stoppingToken, startBlock, 10000).ConfigureAwait(false);
+			} catch (OperationCanceledException) {
+			} catch (Exception e) {
+				logger.LogError(e, "Log Processor from: {address}", blockchainConfiguration.Value.ButtPluggyAddress);
+				await Task.Delay(15000, stoppingToken).ConfigureAwait(false);
 			}
-			await Task.Delay(1000);
 		}
-	}
+		logger.LogInformation("[Stop] Log Processor from: {address}", blockchainConfiguration.Value.ButtPluggyAddress);
 
-	private void Subscription_SubscriptionDataResponse(object? sender, StreamingEventArgs<FilterLog> log) {
-		try {
-			logger.LogInformation("Event Receive {response} {exception}", log.Response, log.Exception);
-			if (log.Response is null) {
-				return;
-			}
-
-			EventLog<TransferEventDTO> eventLog = log.Response.DecodeEvent<TransferEventDTO>();
-			ProcessTransferEvent(eventLog);
-		} catch (Exception e) {
-			logger.LogError(e, "decoding log");
-		}
 	}
 
 	private async void ProcessTransferEvent(EventLog<TransferEventDTO> log) {
+		logger.LogInformation("Event Receive {event}", log.Event);
 		if (log.Event is null) {
 			Console.WriteLine("Found not standard transfer log");
 			return;

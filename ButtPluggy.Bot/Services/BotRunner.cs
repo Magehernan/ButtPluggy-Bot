@@ -14,13 +14,16 @@ public class BotRunner : BackgroundService {
 	private readonly IOptions<DiscordConfiguration> discordConfiguration;
 	private readonly DiscordSocketClient client;
 	private readonly ChannelReader<(string to, BigInteger tokenId)> channelReader;
+	private readonly BigInteger[] lastProcessed = Enumerable.Repeat<BigInteger>(9999, 10).ToArray();
+	private int lastProcessedId = 0;
+
 
 	public BotRunner(ILogger<BotRunner> logger, Channel<(string, BigInteger)> channel, IHttpClientFactory httpClientFactory, IOptions<DiscordConfiguration> discordConfiguration) {
 		this.logger = logger;
 		this.httpClientFactory = httpClientFactory;
 		this.discordConfiguration = discordConfiguration;
 		channelReader = channel.Reader;
-		client = new DiscordSocketClient();
+		client = new DiscordSocketClient(new() { GatewayIntents = GatewayIntents.None });
 		client.Log += Log;
 	}
 
@@ -51,7 +54,24 @@ public class BotRunner : BackgroundService {
 		}
 	}
 
+	private bool HasBeenProcessed(BigInteger tokenId) {
+		for (int i = 0; i < 10; i++) {
+			if (lastProcessed[i] == tokenId) {
+				return true;
+			}
+		}
+
+		lastProcessed[lastProcessedId % 10] = tokenId;
+		lastProcessedId++;
+
+		return false;
+	}
+
 	private async Task SendMessageAsync(string to, BigInteger tokenId) {
+		if (HasBeenProcessed(tokenId)) {
+			return;
+		}
+
 		string? name = null;
 		string urlInfo = $"https://buttpluggy.com/data/{tokenId:0000}.json";
 		try {
